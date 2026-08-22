@@ -1,20 +1,9 @@
-// components/super-admin/SuperAdminNavbar.tsx - FIXED (uses AuthContext, not the dead hook)
-//
-// This previously read admin name/email from hooks/useSuperAdminAuth,
-// whose `adminData` storage key is never written by the real login flow
-// (utils/AuthContext.tsx's superAdminLogin only writes a token via
-// storage.ts). So `admin` was always null here, and the UI silently fell
-// back to the hardcoded "Super Admin" / "admin@apos.com" placeholders —
-// even for a fully logged-in user.
-//
-// Now it reads from AuthContext, the same source Sidebar.tsx already
-// uses correctly.
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, 
-  User, 
   Settings, 
   Bell, 
   ChevronDown,
@@ -25,7 +14,6 @@ import {
   Building2,
   DollarSign,
   Users,
-  Crown,
   Store,
   TrendingUp,
   CreditCard,
@@ -34,7 +22,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../utils/AuthContext';
-import {superAdminApi} from '../../services/api';
+import { superAdminApi } from '../../services/api';
 
 interface NavbarStats {
   totalRestaurants: number;
@@ -49,7 +37,7 @@ export default function SuperAdminNavbar() {
   const { user, logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [notifications, setNotifications] = useState(0);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [stats, setStats] = useState<NavbarStats>({
     totalRestaurants: 0,
     totalRevenue: 0,
@@ -68,13 +56,13 @@ export default function SuperAdminNavbar() {
   const adminEmail = user?.email || 'admin@apos.com';
   const initials = getInitials(user?.firstName, user?.lastName);
 
-  // ─── Fetch Real Data ──────────────────────────────────────────────────
-  const fetchStats = async () => {
+  // ─── Fetch Dashboard Data ──────────────────────────────────────────
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       const response = await superAdminApi.get('/super-admin/dashboard/stats?period=month');
       
-      if (response.data.success) {
+      if (response.data?.success && response.data?.data) {
         const data = response.data.data;
         setStats({
           totalRestaurants: data.totalRestaurants || 0,
@@ -83,42 +71,29 @@ export default function SuperAdminNavbar() {
           pendingOrders: data.pendingOrders || 0,
           todayRevenue: data.todayRevenue || 0,
         });
+        
+        // Show notification dot if there are pending orders
+        setHasUnreadNotifications((data.pendingOrders || 0) > 0);
+      } else {
+        console.warn('Unexpected API response structure:', response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error('Failed to fetch dashboard stats:', error);
+      // Don't show toast here to avoid spam on auto-refresh
     } finally {
       setLoading(false);
     }
   };
 
-  // ─── Fetch Notifications ─────────────────────────────────────────────
-  const fetchNotifications = async () => {
-    try {
-      const response = await superAdminApi.get('/super-admin/dashboard/stats?period=month');
-      if (response.data.success) {
-        const pending = response.data.data.pendingOrders || 0;
-        setNotifications(pending);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    }
-  };
-
   useEffect(() => {
-    fetchStats();
-    fetchNotifications();
+    fetchDashboardData();
 
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchNotifications();
-    }, 30000);
-
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
 
   // ─── Logout ───────────────────────────────────────────────────────────
-  // AuthContext.logout() already toasts and navigates (route-aware), so
-  // this just needs to await it and handle the unlikely failure case.
   const handleLogout = async () => {
     try {
       await logout();
@@ -126,6 +101,17 @@ export default function SuperAdminNavbar() {
       console.error('Logout error:', error);
       toast.error('Failed to logout');
     }
+  };
+
+  // ─── Mark Notifications as Read ────────────────────────────────────
+  const handleMarkNotificationsRead = async () => {
+    setHasUnreadNotifications(false);
+    // Optional: Call API to mark notifications as read
+    // try {
+    //   await superAdminApi.post('/super-admin/notifications/mark-read');
+    // } catch (error) {
+    //   console.error('Failed to mark notifications as read:', error);
+    // }
   };
 
   const formatCurrency = (amount: number) => {
@@ -144,6 +130,7 @@ export default function SuperAdminNavbar() {
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label="Toggle menu"
         >
           {showMobileMenu ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -192,24 +179,24 @@ export default function SuperAdminNavbar() {
           )}
         </div>
 
-        {/* Notifications */}
+        {/* Notifications Bell */}
         <button
           className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          onClick={() => setNotifications(0)}
+          onClick={handleMarkNotificationsRead}
+          aria-label="Notifications"
         >
           <Bell size={20} className="text-gray-500" />
-          {notifications > 0 && (
-            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {notifications > 9 ? '9+' : notifications}
-            </span>
+          {hasUnreadNotifications && (
+            <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
           )}
         </button>
 
-        {/* Profile Dropdown - Only Settings & Logout */}
+        {/* Profile Dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors group"
+            aria-label="Profile menu"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:shadow-md transition-shadow">
               {initials}
@@ -232,7 +219,7 @@ export default function SuperAdminNavbar() {
             />
           </button>
 
-          {/* Dropdown Menu - Only Settings & Logout */}
+          {/* Dropdown Menu */}
           {showProfileMenu && (
             <>
               <div 
@@ -257,7 +244,6 @@ export default function SuperAdminNavbar() {
                   </div>
                 </div>
 
-                {/* ✅ ONLY Settings and Logout */}
                 <div className="py-1">
                   <button
                     onClick={() => {
@@ -289,7 +275,7 @@ export default function SuperAdminNavbar() {
         </div>
       </div>
 
-      {/* Mobile Menu - Only Settings & Logout */}
+      {/* Mobile Menu */}
       {showMobileMenu && (
         <>
           <div 
@@ -328,7 +314,7 @@ export default function SuperAdminNavbar() {
             </div>
             
             <div className="py-2">
-              {/* Navigation links in mobile menu */}
+              {/* Navigation links */}
               <button
                 onClick={() => {
                   setShowMobileMenu(false);
@@ -390,7 +376,6 @@ export default function SuperAdminNavbar() {
                 Revenue
               </button>
               
-              {/* ✅ Only Settings and Logout in mobile menu bottom */}
               <div className="border-t border-gray-100 my-2" />
               <button
                 onClick={() => {
