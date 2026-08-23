@@ -68,11 +68,16 @@ connectDB();
 
 const allowedOrigins = [
   'https://restautant-pos-t6ez.vercel.app',
+<<<<<<< HEAD
   'https://restautant-pos-jv68.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000'
+=======
+  'http://localhost:5173',
+
+>>>>>>> ba8c196791eb594e53fe0e7e3a4745ca369bedfa
 ];
 
 const corsOptions = {
@@ -365,4 +370,8 @@ app.listen(PORT, () => {
   console.log(`📋 Super Admin: http://127.0.0.1:${PORT}/api/super-admin`);
   console.log(`📋 Super Admin Orders: http://127.0.0.1:${PORT}/api/super-admin/orders`);
   console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> ba8c196791eb594e53fe0e7e3a4745ca369bedfa
