@@ -364,8 +364,8 @@ app.listen(PORT, () => {
   console.log(`📋 Super Admin: http://127.0.0.1:${PORT}/api/super-admin`);
   console.log(`📋 Super Admin Orders: http://127.0.0.1:${PORT}/api/super-admin/orders`);
   console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
-<<<<<<< HEAD
+
 });
-=======
+
 });
->>>>>>> ba8c196791eb594e53fe0e7e3a4745ca369bedfa
+
