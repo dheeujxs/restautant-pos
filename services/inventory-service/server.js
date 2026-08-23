@@ -1,4 +1,4 @@
-// server.js - COMPLETE FIXED VERSION WITH ALL ROUTES
+
 
 import express from 'express';
 import cors from 'cors';
