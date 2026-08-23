@@ -3,7 +3,7 @@
 import axios from 'axios';
 import { staffStorage, adminStorage, superAdminStorage } from '../utils/storage';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface StaffSettings {
